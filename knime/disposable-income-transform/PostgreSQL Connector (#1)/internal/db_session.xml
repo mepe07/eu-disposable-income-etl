@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://www.knime.org/2008/09/XMLConfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.knime.org/2008/09/XMLConfig http://www.knime.org/XMLConfig_2008_09.xsd" key="db_session">
+    <config key="Session Info">
+        <entry key="version" type="xint" value="7"/>
+        <entry key="sessionID" type="xstring" value="7d5d3afb-617f-427a-a35a-a2f826951b98"/>
+        <entry key="dbTypeId" type="xstring" value="postgres"/>
+        <entry key="dialectId" type="xstring" value="postgres"/>
+        <entry key="dbURL" type="xstring" value="jdbc:postgresql://localhost:5432/disposable_income"/>
+        <entry key="authenticationType" type="xstring" value="USER_PWD"/>
+        <entry key="dbUser" type="xstring" value="isi"/>
+        <entry key="dbPassword" type="xpassword" value="02AwAAAGMq_QxveL1vZ0EBj9f782-hTpY="/>
+        <entry key="host" type="xstring" value="localhost"/>
+    </config>
+    <config key="Driver Definition">
+        <entry key="driverId" type="xstring" value="built-in-postgres-42.7.11"/>
+        <entry key="driverName" type="xstring" value="Driver for PostgreSQL v.42.7.11"/>
+        <entry key="driverVersion" type="xstring" value="42.7.0"/>
+        <entry key="driverClass" type="xstring" value="org.postgresql.Driver"/>
+        <entry key="driverDescription" type="xstring" value=""/>
+        <entry key="driverOrigin" type="xstring" value="EXTENSION"/>
+        <entry key="deprecated" type="xboolean" value="false"/>
+    </config>
+    <config key="Attributes">
+        <config key="java.lang.Integer">
+            <entry key="knime.db.connection.jdbc.fetch_size" type="xint" value="10000"/>
+            <entry key="knime.db.connection.statement.cancellation.polling_period" type="xint" value="1000"/>
+            <entry key="knime.db.connection.idle.timeout" type="xint" value="0"/>
+            <entry key="knime.db.connection.metadata.configure.timeout" type="xint" value="3"/>
+            <entry key="knime.db.connection.reconnect.timeout" type="xint" value="0"/>
+        </config>
+        <config key="java.lang.String">
+            <entry key="knime.db.dialect.sql.delimiter.identifier.closing" type="xstring" value="&quot;"/>
+            <entry key="knime.db.dialect.sql.delimiter.identifier.opening" type="xstring" value="&quot;"/>
+            <entry key="knime.db.connection.metadata.table.types" type="xstring" value="TABLE, VIEW, MATERIALIZED VIEW"/>
+            <entry key="knime.db.connection.validation_query" type="xstring" value="SELECT 0"/>
+        </config>
+        <config key="java.lang.Boolean">
+            <entry key="knime.db.connection.reconnect" type="xboolean" value="false"/>
+            <entry key="knime.db.connection.statement.cancellation.enabled" type="xboolean" value="true"/>
+            <entry key="knime.db.connection.metadata.configure.enabled" type="xboolean" value="false"/>
+            <entry key="knime.db.dialect.sql.identifier.delimiting.onlyspaces" type="xboolean" value="false"/>
+            <entry key="knime.db.connection.metadata.query.flatten" type="xboolean" value="false"/>
+            <entry key="knime.db.connection.restore" type="xboolean" value="false"/>
+            <entry key="knime.db.connection.logger.enabled" type="xboolean" value="false"/>
+            <entry key="knime.db.agent.writer.fail_on_missing_in_where_clause" type="xboolean" value="true"/>
+        </config>
+        <config key="org.knime.database.util.DerivableProperties">
+            <config key="knime.db.connection.jdbc.properties">
+                <config key="values">
+                    <entry key="tcpKeepAlive" type="xstring" value="true"/>
+                </config>
+                <config key="types">
+                    <entry key="tcpKeepAlive" type="xstring" value="LITERAL"/>
+                </config>
+            </config>
+        </config>
+    </config>
+</config>
