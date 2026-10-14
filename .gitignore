@@ -1,0 +1,15 @@
+# KNIME
+knime/.metadata/
+ 
+# Data outputs (gerados pelo pipeline, não versionados)
+data/output/
+ 
+# Logs
+*.log
+ 
+# OS
+.DS_Store
+Thumbs.db
+ 
+# Environment
+.env
