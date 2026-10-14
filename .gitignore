@@ -1,21 +1,20 @@
 # KNIME
 knime/.metadata/
- 
+
 # Data outputs (gerados pelo pipeline, não versionados)
 data/output/
- 
+
 # Logs
 *.log
- 
+
 # OS
 .DS_Store
 Thumbs.db
- 
+
 # Environment
 .env
 
-
-#NODE-RED
+# Node-RED
 node-red/node_modules/
 node-red/.npm/
 node-red/*.backup

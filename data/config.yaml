@@ -1,0 +1,77 @@
+# ============================================================
+# ISI 2026/27 — Evolução do Poder de Compra na União Europeia
+# Ficheiro de configuração do pipeline ETL
+# ============================================================
+
+pipeline:
+  name: eu-disposable-income-etl
+  version: "1.0"
+  description: "Pipeline ETL para monitorização do rendimento discricionário na UE"
+
+# Países monitorizados (ISO 3166-1 alpha-2)
+countries:
+  - code: PT
+    name: Portugal
+  - code: DE
+    name: Germany
+  - code: FR
+    name: France
+  - code: ES
+    name: Spain
+  - code: IT
+    name: Italy
+  - code: NL
+    name: Netherlands
+  - code: PL
+    name: Poland
+  - code: AT
+    name: Austria
+  - code: BE
+    name: Belgium
+  - code: SE
+    name: Sweden
+  - code: FI
+    name: Finland
+  - code: CZ
+    name: Czech Republic
+  - code: HU
+    name: Hungary
+
+# Fontes de dados
+sources:
+  eurostat:
+    base_url: "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
+    datasets:
+      net_earnings: "earn_nt_net"
+      inflation_hicp: "prc_hicp_midx"
+      housing_cost: "ilc_lvho07a"
+      purchasing_power_parity: "prc_ppp_ind"
+    since_year: 2015
+    format: JSON
+
+# Pesos para cálculo do rendimento discricionário
+weights:
+  housing_pct_of_income: true   # usa dados reais do Eurostat
+  food_and_transport_pct: 0.25  # estimativa: 25% do salário líquido
+
+# Limiares de alerta
+alerts:
+  inflation:
+    warning_threshold: 5.0    # % — alerta quando inflação anual > 5%
+    critical_threshold: 10.0  # % — alerta crítico quando > 10%
+  disposable_income:
+    min_threshold_eur: 5000   # alerta quando rendimento discricionário anual < 5000€
+
+# Base de dados
+database:
+  host: localhost
+  port: 5432
+  name: disposable_income
+  schema: public
+
+# Exportação
+export:
+  output_dir: "data/output"
+  formats:
+    - csv
+    - json
