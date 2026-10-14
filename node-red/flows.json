@@ -1,0 +1,123 @@
+[
+    {
+        "id": "e01d0ca377f8da83",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "609c67eae7602cf6",
+        "type": "postgresdb",
+        "hostname": "isi_postgres",
+        "port": 5432,
+        "db": "disposable_income",
+        "ssl": false
+    },
+    {
+        "id": "d38a8a98da73d813",
+        "type": "inject",
+        "z": "e01d0ca377f8da83",
+        "name": "Trigger",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "3600",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 220,
+        "y": 240,
+        "wires": [
+            [
+                "1e08060cf9592d1e"
+            ]
+        ]
+    },
+    {
+        "id": "3646db1589912546",
+        "type": "function",
+        "z": "e01d0ca377f8da83",
+        "name": "Parse Earnings",
+        "func": "const data = msg.payload;\nconst values = data.value;\nconst geos = data.dimension.geo.category.index;\nconst times = data.dimension.time.category.index;\n\nconst geoKeys = Object.keys(geos).sort((a,b) => geos[a] - geos[b]);\nconst timeKeys = Object.keys(times).sort((a,b) => times[a] - times[b]);\n\nlet rows = [];\ngeoKeys.forEach(geo => {\n    timeKeys.forEach(time => {\n        const idx = geos[geo] * timeKeys.length + times[time];\n        const val = values[idx];\n        if (val !== null && val !== undefined) {\n            rows.push([geo, parseInt(time), val]);\n        }\n    });\n});\n\nconst valuePlaceholders = rows.map((_, i) => \n    `($${i*3+1}, $${i*3+2}, $${i*3+3})`\n).join(',');\n\nmsg.query = `\n    INSERT INTO net_earnings (country_code, year, annual_net_eur)\n    VALUES ${valuePlaceholders}\n    ON CONFLICT (country_code, year) \n    DO UPDATE SET annual_net_eur = EXCLUDED.annual_net_eur\n`;\nmsg.params = rows.flat();\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 240,
+        "wires": [
+            [
+                "18772467458ad7b8"
+            ]
+        ]
+    },
+    {
+        "id": "18772467458ad7b8",
+        "type": "postgres",
+        "z": "e01d0ca377f8da83",
+        "postgresdb": "609c67eae7602cf6",
+        "name": "Insert Earnings",
+        "output": true,
+        "outputs": 1,
+        "x": 1200,
+        "y": 240,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "170feea48d89a3cf",
+        "type": "debug",
+        "z": "e01d0ca377f8da83",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 820,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "1e08060cf9592d1e",
+        "type": "function",
+        "z": "e01d0ca377f8da83",
+        "name": "Fetch Earnings",
+        "func": "return new Promise((resolve, reject) => {\n    const url = 'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_nt_net?format=JSON&lang=EN&geo=PT&geo=DE&geo=FR&geo=ES&geo=IT&geo=NL&geo=PL&sinceTimePeriod=2021';\n\n    https.get(url, (res) => {\n        let data = '';\n        res.on('data', chunk => data += chunk);\n        res.on('end', () => {\n            msg.payload = JSON.parse(data);\n            resolve(msg);\n        });\n    }).on('error', (err) => {\n        node.error(err.message);\n        reject(err);\n    });\n});",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "https",
+                "module": "https"
+            }
+        ],
+        "x": 540,
+        "y": 240,
+        "wires": [
+            [
+                "3646db1589912546",
+                "170feea48d89a3cf"
+            ]
+        ]
+    }
+]

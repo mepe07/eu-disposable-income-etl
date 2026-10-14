@@ -13,3 +13,9 @@ Thumbs.db
  
 # Environment
 .env
+
+
+#NODE-RED
+node-red/node_modules/
+node-red/.npm/
+node-red/*.backup
