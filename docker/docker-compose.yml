@@ -1,5 +1,16 @@
 services:
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: isi_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: isi
+      RABBITMQ_DEFAULT_PASS: isi
+
   postgres:
     image: postgres:16
     container_name: isi_postgres
