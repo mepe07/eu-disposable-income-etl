@@ -2,7 +2,7 @@
 <config xmlns="http://www.knime.org/2008/09/XMLConfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.knime.org/2008/09/XMLConfig http://www.knime.org/XMLConfig_2008_09.xsd" key="db_session">
     <config key="Session Info">
         <entry key="version" type="xint" value="7"/>
-        <entry key="sessionID" type="xstring" value="2da00a6e-d23b-4453-9b49-88a496199495"/>
+        <entry key="sessionID" type="xstring" value="29e514af-d57f-4985-846e-1743f11ba0c6"/>
         <entry key="dbTypeId" type="xstring" value="postgres"/>
         <entry key="dialectId" type="xstring" value="postgres"/>
         <entry key="dbURL" type="xstring" value="jdbc:postgresql://localhost:5432/disposable_income"/>
@@ -36,12 +36,12 @@
         </config>
         <config key="java.lang.Boolean">
             <entry key="knime.db.connection.reconnect" type="xboolean" value="false"/>
-            <entry key="knime.db.connection.statement.cancellation.enabled" type="xboolean" value="true"/>
             <entry key="knime.db.connection.metadata.configure.enabled" type="xboolean" value="false"/>
-            <entry key="knime.db.dialect.sql.identifier.delimiting.onlyspaces" type="xboolean" value="false"/>
+            <entry key="knime.db.connection.statement.cancellation.enabled" type="xboolean" value="true"/>
             <entry key="knime.db.connection.metadata.query.flatten" type="xboolean" value="false"/>
-            <entry key="knime.db.connection.restore" type="xboolean" value="false"/>
+            <entry key="knime.db.dialect.sql.identifier.delimiting.onlyspaces" type="xboolean" value="false"/>
             <entry key="knime.db.connection.logger.enabled" type="xboolean" value="false"/>
+            <entry key="knime.db.connection.restore" type="xboolean" value="false"/>
             <entry key="knime.db.agent.writer.fail_on_missing_in_where_clause" type="xboolean" value="true"/>
         </config>
         <config key="org.knime.database.util.DerivableProperties">
