@@ -17,25 +17,24 @@ Analisar como o rendimento discricionário (salário líquido menos habitação 
 Eurostat API ──┐
 World Bank API ─┤
 Frankfurter API ┤──▶ Node-RED (publishers) ──▶ RabbitMQ ──▶ Node-RED (subscribers) ──▶ PostgreSQL
-YAML config ───┘                                                                              │
-                                                                                              ▼
-                                                                                           KNIME
-                                                                                        (transform)
-                                                                                              │
-                                                                                     ┌────────┴────────┐
-                                                                                     ▼                 ▼
-                                                                                  Grafana          Telegram
-                                                                               (dashboards)         (alertas)
+config.yaml ───┘                                                        │                    │
+                                                                        │                    ▼
+                                                              knime_trigger.txt ──▶ KNIME (transform)
+                                                              (PowerShell watch)         │
+                                                                                 ┌────────┴────────┐
+                                                                                 ▼                 ▼
+                                                                              Grafana          Telegram
+                                                                           (11 dashboards)    (alertas PT)
 ```
 
 **Ferramentas:**
-- **Node-RED** — extração, publicação e subscrição via AMQP
-- **RabbitMQ** — broker de mensagens (exchange Direct `isi.etl`, 5 queues)
-- **PostgreSQL 16** — armazenamento dos dados extraídos
-- **KNIME** — transformação e cálculo do rendimento discricionário
-- **Grafana** — visualização de dashboards
-- **Docker** — orquestração de PostgreSQL, RabbitMQ e Grafana
-- **PowerShell** — trigger automático do KNIME via NodePIT Batch Executor
+- **Node-RED** — extração, publicação (publishers) e subscrição (subscribers) via AMQP; tab `knime_trigger` gera o ficheiro de trigger após todas as extrações
+- **RabbitMQ** — broker de mensagens com exchange Direct `isi.etl` e 6 filas (uma por fonte de dados)
+- **PostgreSQL 16** — armazenamento dos dados extraídos; upserts idempotentes via `ON CONFLICT DO UPDATE`
+- **KNIME** — transformação e cálculo do rendimento discricionário; arranca em batch via NodePIT Batch Executor
+- **Grafana** — 11 painéis de visualização com datasource PostgreSQL
+- **Docker** — orquestração de PostgreSQL, RabbitMQ e Grafana via `docker-compose`
+- **PowerShell** — script `knime_batch.ps1` em loop que deteta o ficheiro de trigger e arranca o KNIME automaticamente
 
 ---
 
@@ -44,12 +43,12 @@ YAML config ───┘                                                        
 | Fonte | Dataset | Descrição |
 |---|---|---|
 | Eurostat | `earn_nt_net` | Salários médios líquidos anuais |
-| Eurostat | `prc_hicp_midx` | Inflação HICP mensal (freq=M) |
-| Eurostat | `ilc_lvho07a` | Custo de habitação (% rendimento) |
-| Eurostat | `prc_ppp_ind` | Paridades de poder de compra |
+| Eurostat | `prc_hicp_midx` | Inflação HICP mensal (`&freq=M`, base 2015=100) |
+| Eurostat | `ilc_lvho07a` | Taxa de sobrecarga com habitação (% rendimento) |
+| Eurostat | `prc_ppp_ind` | Paridades de poder de compra (índice EU27=100) |
 | World Bank | `NY.GDP.PCAP.CD` | PIB per capita (USD) |
-| Frankfurter API | — | Taxas de câmbio USD→EUR (média anual) |
-| `config.yaml` | — | Lista de países e parâmetros do pipeline |
+| Frankfurter API | — | Taxas de câmbio USD→EUR (média anual por par) |
+| `config.yaml` | — | Lista de países, códigos ISO e parâmetros do pipeline |
 
 Os dados originais nunca são apagados — novas extrações usam `ON CONFLICT DO UPDATE`.
 
@@ -57,7 +56,7 @@ Os dados originais nunca são apagados — novas extrações usam `ON CONFLICT D
 
 ## Países monitorizados
 
-Portugal, Alemanha, França, Espanha, Itália, Países Baixos, Polónia, Áustria, Bélgica, Suécia, Finlândia, República Checa, Hungria.
+13 países da UE: Portugal (PT), Alemanha (DE), França (FR), Espanha (ES), Itália (IT), Países Baixos (NL), Polónia (PL), Áustria (AT), Bélgica (BE), Suécia (SE), Finlândia (FI), República Checa (CZ), Hungria (HU).
 
 ---
 
@@ -66,34 +65,48 @@ Portugal, Alemanha, França, Espanha, Itália, Países Baixos, Polónia, Áustri
 ```
 eu-disposable-income-etl/
 ├── docker/
-│   └── docker-compose.yml       # PostgreSQL, RabbitMQ, Grafana
+│   └── docker-compose.yml            # PostgreSQL 16, RabbitMQ 3, Grafana
 ├── knime/
-│   └── disposable-income-transform/   # Workflow KNIME
+│   └── disposable-income-transform/  # Workflow KNIME (calcular rendimento discricionário)
 ├── exports/
-│   ├── knime_trigger.txt        # Ficheiro de trigger (criado pelo Node-RED)
-│   ├── knime_batch.log          # Log de execuções KNIME
-│   └── etl.log                  # Log do pipeline Node-RED
+│   ├── knime_trigger.txt             # Criado pelo Node-RED para desencadear o KNIME
+│   ├── knime_batch.log               # Log de execuções batch do KNIME
+│   └── etl.log                       # Log do pipeline Node-RED
 ├── scripts/
-│   └── knime_batch.ps1          # Script PowerShell de trigger automático
-├── schema.sql                   # Schema da base de dados
-└── config.yaml                  # Configuração do pipeline (países, thresholds, fontes)
+│   └── knime_batch.ps1               # Loop PowerShell que deteta o trigger e executa o KNIME
+├── schema.sql                        # DDL das 7 tabelas PostgreSQL
+└── config.yaml                       # Países, thresholds e parâmetros de extração
 ```
 
-O Node-RED é gerido internamente (flows em `~/.node-red/`).
+O Node-RED é gerido internamente (flows em `~/.node-red/`). O flow está organizado em 9 tabs:
+`config` · `pub_net_earnings` · `pub_inflation_hicp` · `pub_housing_cost` · `pub_purchasing_power_parity` · `pub_gdp_per_capita` · `pub_exchange_rates` · `subscribers` · `knime_trigger` · `telegram_alert`
 
 ---
 
 ## Base de dados
 
-| Tabela | Origem | Descrição |
-|---|---|---|
-| `net_earnings` | Eurostat | Salários líquidos anuais por país |
-| `inflation_hicp` | Eurostat | Índice HICP mensal |
-| `housing_cost` | Eurostat | % rendimento gasto em habitação |
-| `purchasing_power_parity` | Eurostat | Índice PPP relativo à média EU27 |
-| `gdp_per_capita` | World Bank | PIB per capita em EUR |
-| `exchange_rates` | Frankfurter | Taxa de câmbio USD→EUR média anual |
-| `disposable_income` | KNIME | Rendimento discricionário calculado |
+| Tabela | Origem | Registos (aprox.) | Descrição |
+|---|---|---|---|
+| `net_earnings` | Eurostat | ~143 | Salários líquidos anuais por país |
+| `inflation_hicp` | Eurostat | ~1716 | Índice HICP mensal (ano + mês) |
+| `housing_cost` | Eurostat | ~142 | % do rendimento gasto em habitação |
+| `purchasing_power_parity` | Eurostat | ~143 | Índice PPP relativo à média EU27 |
+| `gdp_per_capita` | World Bank | ~130 | PIB per capita em USD |
+| `exchange_rates` | Frankfurter | ~10 | Taxa de câmbio USD→EUR média anual |
+| `disposable_income` | KNIME | ~129 | Rendimento discricionário calculado + classificação LOW/MEDIUM/HIGH |
+
+Query de verificação rápida:
+
+```sql
+SELECT 'net_earnings'           AS tabela, COUNT(*) AS registos FROM net_earnings
+UNION ALL SELECT 'inflation_hicp',          COUNT(*) FROM inflation_hicp
+UNION ALL SELECT 'housing_cost',            COUNT(*) FROM housing_cost
+UNION ALL SELECT 'purchasing_power_parity', COUNT(*) FROM purchasing_power_parity
+UNION ALL SELECT 'gdp_per_capita',          COUNT(*) FROM gdp_per_capita
+UNION ALL SELECT 'exchange_rates',          COUNT(*) FROM exchange_rates
+UNION ALL SELECT 'disposable_income',       COUNT(*) FROM disposable_income
+ORDER BY tabela;
+```
 
 ---
 
@@ -102,9 +115,11 @@ O Node-RED é gerido internamente (flows em `~/.node-red/`).
 ### Pré-requisitos
 
 - Docker Desktop
-- Node-RED (`npm install -g node-red`)
-- KNIME 5.12 LTS com NodePIT Batch Executor instalado
-- Node-RED packages: `node-red-contrib-amqp`, `node-red-node-postgresql`
+- Node-RED (`npm install -g node-red`) com packages:
+  - `node-red-contrib-amqp`
+  - `node-red-node-postgresql`
+- KNIME 5.x LTS com **NodePIT Batch Executor** instalado
+- PowerShell 5.1+ (incluído no Windows 10/11)
 
 ### 1. Levantar os serviços
 
@@ -113,9 +128,11 @@ cd docker
 docker-compose up -d
 ```
 
-- RabbitMQ Management: http://localhost:15672 (isi/isi)
-- Grafana: http://localhost:3000 (admin/admin)
-- PostgreSQL: localhost:5432 (isi/isi, db: disposable_income)
+| Serviço | URL | Credenciais |
+|---|---|---|
+| RabbitMQ Management | http://localhost:15672 | isi / isi |
+| Grafana | http://localhost:3000 | admin / admin |
+| PostgreSQL | localhost:5432 | isi / isi · db: disposable_income |
 
 ### 2. Criar o schema
 
@@ -123,41 +140,71 @@ docker-compose up -d
 psql -U isi -d disposable_income -f schema.sql
 ```
 
-### 3. Iniciar o Node-RED
+### 3. Importar o dashboard Grafana
+
+Em Grafana → **Dashboards → Import → Upload JSON file**, importar `grafana_dashboard.json`.  
+Mapear o datasource para a ligação PostgreSQL configurada (`host.docker.internal:5432`).
+
+### 4. Iniciar o Node-RED
 
 ```bash
 node-red
 ```
 
-Aceder em http://localhost:1880. O flow de configuração (`config`) lê o `config.yaml` e carrega os países no contexto global. Os publishers disparam automaticamente 0.1s após o deploy.
+Aceder em http://localhost:1880. O flow `config` lê o `config.yaml` e carrega os países no contexto global. Os publishers disparam automaticamente 0,1 s após o deploy.
 
-### 4. Iniciar o trigger do KNIME
+### 5. Iniciar o trigger do KNIME
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\knime_batch.ps1
 ```
 
-O script fica em loop a cada 10 segundos à espera do ficheiro `exports\knime_trigger.txt`. Quando o Node-RED termina a extração, cria esse ficheiro e o KNIME executa automaticamente.
+O script fica em loop a cada 10 segundos à espera de `exports\knime_trigger.txt`. Quando o Node-RED termina todas as extrações, cria esse ficheiro; o script deteta-o, apaga-o e executa o KNIME em batch mode com NodePIT Batch Executor. O resultado é escrito em `exports\knime_batch.log`.
 
 ---
 
 ## Alertas Telegram
 
-Após cada extração, o pipeline compara Portugal com a média europeia em 3 métricas (salário líquido, custo de habitação, PPP). Se Portugal estiver abaixo da média, é enviada uma notificação via Telegram Bot.
+Após cada extração completa, o flow `telegram_alert` compara Portugal com a média europeia em 3 métricas:
+
+| Métrica | Tabela | Condição de alerta |
+|---|---|---|
+| Salário líquido | `net_earnings` | PT < média EU |
+| % habitação | `housing_cost` | PT > média EU |
+| Índice PPP | `purchasing_power_parity` | PT < média EU |
+
+Se alguma condição se verificar, é enviada uma mensagem via Telegram Bot com os desvios em percentagem. O flow usa um nó de debounce (10 s) para evitar mensagens duplicadas quando múltiplos subscribers terminam em simultâneo.
+
+---
+
+## Mecanismo de trigger KNIME
+
+O trigger entre o Node-RED e o KNIME é feito por ficheiro:
+
+1. O último subscriber (sub_exchange_rates) envia uma mensagem via **link out** para a tab `knime_trigger`
+2. Um nó **trigger** com debounce de 10 s aguarda que não cheguem mais mensagens
+3. Um nó **file** escreve `exports\knime_trigger.txt`
+4. O `knime_batch.ps1` deteta o ficheiro, apaga-o e executa:
+
+```
+knime.exe -application com.nodepit.batch.application.NodePitBatchExecutor
+          --reset --no-save "<caminho para o workflow>"
+```
 
 ---
 
 ## Expressões regulares utilizadas
 
-O pipeline usa regex na extração e validação de dados:
 - Validação de formato de datas `YYYY-MM` na série HICP mensal
-- Extração de campos de resposta JSON da API Eurostat
-- Parsing do ficheiro YAML de configuração
+- Extração de campos da resposta JSON da API Eurostat (índices de dimensão `geo` e `time`)
+- Parsing do ficheiro YAML de configuração (`config.yaml`)
 
 ---
 
 ## Limitações conhecidas
 
-- O GDP per capita (World Bank) tem cobertura incompleta para alguns anos recentes.
-- O PPP da Eurostat (`prc_ppp_ind`) pode apresentar inconsistências para anos mais recentes ainda não revistos.
-- O KNIME Desktop Community Edition não suporta batch mode nativo (exit code 5); contornado via NodePIT Batch Executor.
+- O PIB per capita (World Bank) pode não ter dados para o ano corrente; o pipeline usa o último ano disponível.
+- O índice PPP da Eurostat (`prc_ppp_ind`) pode apresentar valores provisórios para os anos mais recentes.
+- O KNIME Desktop Community Edition não suporta batch mode nativo (termina com exit code 5); contornado com o **NodePIT Batch Executor**.
+- O nó de trigger envia ocasionalmente 2 mensagens Telegram em vez de 1, quando dois subscribers terminam fora da janela de debounce.
+- Os caminhos no Node-RED (nós `file` e `yaml`) estão configurados com caminhos absolutos da máquina de desenvolvimento — ajustar antes de executar noutra máquina.
