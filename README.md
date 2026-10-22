@@ -201,10 +201,3 @@ knime.exe -application com.nodepit.batch.application.NodePitBatchExecutor
 
 ---
 
-## Limitações conhecidas
-
-- O PIB per capita (World Bank) pode não ter dados para o ano corrente; o pipeline usa o último ano disponível.
-- O índice PPP da Eurostat (`prc_ppp_ind`) pode apresentar valores provisórios para os anos mais recentes.
-- O KNIME Desktop Community Edition não suporta batch mode nativo (termina com exit code 5); contornado com o **NodePIT Batch Executor**.
-- O nó de trigger envia ocasionalmente 2 mensagens Telegram em vez de 1, quando dois subscribers terminam fora da janela de debounce.
-- Os caminhos no Node-RED (nós `file` e `yaml`) estão configurados com caminhos absolutos da máquina de desenvolvimento — ajustar antes de executar noutra máquina.
